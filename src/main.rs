@@ -84,7 +84,7 @@ fn build_content_response(request: &str, content: &str, content_type: &str) -> V
 
         let mut raw_response = response.clone().into_bytes();
         raw_response.extend_from_slice(&body);
-        return raw_response;
+        return raw_response
     }
 
     response.push_str("\r\n");
