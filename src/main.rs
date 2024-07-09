@@ -1,4 +1,5 @@
 use flate2::{write::GzEncoder, Compression};
+use regex::Regex;
 use std::{
     env, fs,
     fs::File,
@@ -29,25 +30,18 @@ fn generate_filename(path: &str) -> String {
 }
 
 fn get_header(request: &str, pattern: &str) -> String {
-    let mut header: String = String::from("");
-    let mut lines = request.lines();
+    let re = Regex::new(format!(r#"{}: .*"#, pattern).as_str()).unwrap();
+    let Some(caps) = re.captures(request) else {
+        return String::from("");
+    };
+    let headers = &caps[0].split_once(" ").unwrap();
 
-    loop {
-        let line = lines.next().unwrap();
-        if line == "" {
-            break;
-        }
-        if line.starts_with(pattern) {
-            let headers = line.split_once(" ").unwrap();
-            header = String::from(headers.1);
-        }
-    }
-
-    header
+    let header = headers.1.replace("\r", "");
+    String::from(header)
 }
 
 fn get_compression(request: &str) -> String {
-    let compressions = get_header(request, "Accept-Encoding:");
+    let compressions = get_header(request, "Accept-Encoding");
     let mut encoding = String::from("");
 
     for compression in compressions.split(", ") {
@@ -84,7 +78,7 @@ fn build_content_response(request: &str, content: &str, content_type: &str) -> V
 
         let mut raw_response = response.clone().into_bytes();
         raw_response.extend_from_slice(&body);
-        return raw_response
+        return raw_response;
     }
 
     response.push_str("\r\n");
@@ -102,7 +96,7 @@ fn handle_echo(path: &str, request: &str, mut stream: TcpStream) -> Result<()> {
 }
 
 fn handle_user_agent(request: &str, mut stream: TcpStream) -> Result<()> {
-    let user_agent = get_header(request, "User-Agent:");
+    let user_agent = get_header(request, "User-Agent");
 
     if user_agent == "" {
         stream.write_all(NOT_FOUND_RESPONSE.as_bytes())?;
