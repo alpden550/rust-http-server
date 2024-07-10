@@ -1,4 +1,4 @@
-# HTTP Server
+# Rust HTTP Server
 
 Simple http server build on Rust std library.
 
