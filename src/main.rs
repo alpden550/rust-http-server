@@ -65,26 +65,25 @@ fn compress_body(input: &str) -> Vec<u8> {
 fn build_content_response(request: &str, content: &str, content_type: &str) -> Vec<u8> {
     let compression = get_compression(request);
 
-    let mut response = String::from("HTTP/1.1 200 OK");
-    response.push_str("\r\n");
-    response.push_str(format!("Content-Type: {}", content_type).as_str());
-    if compression != "" {
+    let mut response = vec![];
+    response.extend_from_slice("HTTP/1.1 200 OK\r\n".as_bytes());
+    response.extend_from_slice(format!("Content-Type: {}\r\n", content_type).as_bytes());
+
+    if compression.contains("gzip") {
         let body = compress_body(content);
 
-        response.push_str("\r\n");
-        response.push_str(compression.as_str());
-        response.push_str("\r\n");
-        response.push_str(format!("Content-Length: {}\r\n\r\n", body.len()).as_str());
-
-        let mut raw_response = response.clone().into_bytes();
-        raw_response.extend_from_slice(&body);
-        return raw_response;
+        response.extend_from_slice(compression.as_bytes());
+        response
+            .extend_from_slice(format!("\r\nContent-Length: {}\r\n\r\n", body.len()).as_bytes());
+        response.extend_from_slice(&body);
+        return response;
     }
 
-    response.push_str("\r\n");
-    response.push_str(format!("Content-Length: {}\r\n\r\n{}", content.len(), content).as_str());
+    response.extend_from_slice(
+        format!("Content-Length: {}\r\n\r\n{}", content.len(), content).as_bytes(),
+    );
 
-    response.into_bytes()
+    response
 }
 
 fn handle_echo(path: &str, request: &str, mut stream: TcpStream) -> Result<()> {
